@@ -1,0 +1,24 @@
+{
+  "name": "aide",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rorystouder/AIDE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rorystouder/AIDE/issues"
+  },
+  "homepage": "https://github.com/rorystouder/AIDE#readme",
+  "devDependencies": {
+    "generator-code": "^1.11.11",
+    "yo": "^5.1.0"
+  }
+}
