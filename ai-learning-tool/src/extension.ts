@@ -21,8 +21,13 @@ export function activate(context: vscode.ExtensionContext) {
         await generateCodeFromSelection();
     });
 
+    // Register Switch Provider command
+    let switchProviderCommand = vscode.commands.registerCommand('ai-learning-tool.switchProvider', async () => {
+        await switchAIProvider();
+    });
+
     // Register all commands
-    context.subscriptions.push(helloWorldCommand, openChatCommand, generateCodeCommand);
+    context.subscriptions.push(helloWorldCommand, openChatCommand, generateCodeCommand, switchProviderCommand);
 }
 
 function createWebviewPanel(context: vscode.ExtensionContext) {
@@ -56,10 +61,14 @@ function createWebviewPanel(context: vscode.ExtensionContext) {
                     break;
                 case 'checkConfig':
                     const validation = validateConfiguration();
+                    const config = vscode.workspace.getConfiguration('ai-learning-tool');
+                    const provider = config.get<string>('provider', 'openai');
+                    
                     panel.webview.postMessage({
                         command: 'configStatus',
                         isValid: validation.isValid,
-                        message: validation.message
+                        message: validation.message,
+                        provider: provider
                     });
                     break;
                 case 'openSettings':
@@ -111,6 +120,42 @@ Please provide clean, well-commented code that follows best practices for ${lang
     }
 }
 
+async function switchAIProvider() {
+    const providers = [
+        { label: '🧠 Claude API', description: 'Anthropic\'s Claude (requires API key)', value: 'claude' },
+        { label: '🤖 OpenAI', description: 'GPT models (requires API key)', value: 'openai' },
+        { label: '🏠 Local AI', description: 'Ollama or other local models', value: 'local' },
+        { label: '🎯 Cursor Integration', description: 'Use Cursor\'s built-in AI features', value: 'cursor' }
+    ];
+
+    const selection = await vscode.window.showQuickPick(providers, {
+        placeHolder: 'Choose your AI provider',
+        ignoreFocusOut: true
+    });
+
+    if (selection) {
+        const config = vscode.workspace.getConfiguration('ai-learning-tool');
+        await config.update('provider', selection.value, vscode.ConfigurationTarget.Global);
+        
+        vscode.window.showInformationMessage(
+            `AI provider switched to ${selection.label}. ${selection.value === 'cursor' ? '' : selection.value === 'local' ? 'Make sure your local AI service is running.' : 'Please configure your API key in settings.'}`
+        );
+
+        // If they selected a provider that needs configuration, open settings
+        if ((selection.value === 'openai' || selection.value === 'claude') && !config.get<string>('apiKey')) {
+            const openSettings = await vscode.window.showInformationMessage(
+                'This provider requires an API key. Open settings to configure?',
+                'Open Settings',
+                'Later'
+            );
+            
+            if (openSettings === 'Open Settings') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'ai-learning-tool.apiKey');
+            }
+        }
+    }
+}
+
 function getWebviewContent(): string {
     return `<!DOCTYPE html>
     <html lang="en">
@@ -139,12 +184,18 @@ function getWebviewContent(): string {
                 margin-bottom: 20px;
             }
             
-            .status-indicator {
+            .status-indicator, .provider-indicator {
                 display: inline-block;
                 padding: 4px 8px;
                 border-radius: 4px;
                 font-size: 12px;
                 margin-left: 10px;
+            }
+            
+            .provider-indicator {
+                background-color: var(--vscode-badge-background);
+                color: var(--vscode-badge-foreground);
+                font-weight: bold;
             }
             
             .status-valid {
@@ -263,9 +314,13 @@ function getWebviewContent(): string {
     <body>
         <div class="container">
             <div class="header">
-                <h1>AI Learning Assistant</h1>
-                <span>Status:</span>
-                <span id="status-indicator" class="status-indicator">Checking...</span>
+                <h1>🎯 AI Learning Assistant for Cursor</h1>
+                <div style="margin-top: 8px;">
+                    <span>Provider:</span>
+                    <span id="provider-indicator" class="provider-indicator">Loading...</span>
+                    <span style="margin-left: 15px;">Status:</span>
+                    <span id="status-indicator" class="status-indicator">Checking...</span>
+                </div>
             </div>
             
             <div id="config-warning" class="config-warning" style="display: none;">
@@ -278,10 +333,20 @@ function getWebviewContent(): string {
             <div class="chat-container">
                 <div id="messages" class="messages">
                     <div class="message ai-message">
-                        <strong>AI Assistant:</strong> Hello! I'm here to help you learn and code. 
-                        Ask me questions, request code examples, or describe what you'd like to build.
+                        <strong>AI Learning Assistant:</strong> Welcome to your AI Learning companion for Cursor! 🎯
+                        <br><br>
+                        I support multiple AI providers:
+                        <br>• <strong>Claude API</strong> - Anthropic's powerful AI (requires API key)
+                        <br>• <strong>OpenAI</strong> - GPT models (requires API key) 
+                        <br>• <strong>Local AI</strong> - Ollama and other local models
+                        <br>• <strong>Cursor</strong> - Integration guidance for Cursor's built-in AI
                         
-                        <br><br><em>💡 Tip: You can also select text in your editor and use the "Generate Code" command for context-aware assistance.</em>
+                        <br><br><strong>💡 Pro Tips:</strong>
+                        <br>• Select text in your editor → "Generate Code" for context-aware help
+                        <br>• Use Cursor's Cmd/Ctrl+K for built-in AI chat
+                        <br>• Configure your preferred AI provider in settings
+                        
+                        <br><br>Ask me anything about coding, request examples, or describe what you'd like to build!
                     </div>
                 </div>
                 
@@ -370,9 +435,14 @@ function getWebviewContent(): string {
                         
                     case 'configStatus':
                         const indicator = document.getElementById('status-indicator');
+                        const providerIndicator = document.getElementById('provider-indicator');
                         const warning = document.getElementById('config-warning');
                         const configMessage = document.getElementById('config-message');
                         
+                        // Update provider indicator
+                        providerIndicator.textContent = message.provider.toUpperCase();
+                        
+                        // Update status indicator
                         if (message.isValid) {
                             indicator.className = 'status-indicator status-valid';
                             indicator.textContent = 'Ready';

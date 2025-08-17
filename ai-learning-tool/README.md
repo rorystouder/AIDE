@@ -1,32 +1,62 @@
-# AI Learning Tool
+# AI Learning Tool for Cursor 🎯
 
-AI-powered learning tool for VS Code.
+AI-powered learning tool optimized for Cursor IDE with multi-provider support.
 
 ## Features
 
 ### Phase 1 ✅
 - Basic extension setup and Hello World command
 
-### Phase 2 ✅ 
-- **AI Chat Interface**: Interactive webview for conversing with AI
-- **Code Generation**: Select text and generate code based on descriptions
-- **API Integration**: Support for OpenAI and compatible APIs
-- **Configuration Management**: Secure API key storage and validation
-- **Context-Aware Assistance**: Language and file-specific code generation
+### Phase 2 ✅ + Cursor Optimizations
+- **🎯 Cursor-Optimized UI**: Beautiful interface designed for Cursor users
+- **🔄 Multi-Provider Support**: Claude API, OpenAI, Local AI, and Cursor integration
+- **💬 AI Chat Interface**: Interactive webview for conversing with multiple AI providers
+- **⚡ Quick Provider Switching**: Easy switching between AI providers
+- **🎛️ Smart Configuration**: Provider-specific settings and validation
+- **🔧 Code Generation**: Context-aware code generation with file type detection
+- **🏠 Local AI Support**: Works with Ollama and other local models
 
 ## Requirements
 
-- VS Code version 1.74.0 or higher
-- Node.js 16.x or higher
-- AI API key (OpenAI or compatible service)
+- **Cursor IDE** or VS Code version 1.74.0 or higher
+- Node.js 16.x or higher  
+- AI API key (optional - depends on provider choice)
+
+## Supported AI Providers
+
+### 🧠 Claude API (Recommended)
+- **Cost**: Pay-per-use (~$0.25 per 1M tokens for Haiku)
+- **Setup**: Requires Anthropic API key
+- **Best for**: High-quality code generation and explanations
+
+### 🤖 OpenAI 
+- **Cost**: Pay-per-use (~$0.50 per 1M tokens for GPT-3.5)
+- **Setup**: Requires OpenAI API key
+- **Best for**: General purpose coding assistance
+
+### 🏠 Local AI (Free!)
+- **Cost**: Free (uses your hardware)
+- **Setup**: Install Ollama + download models
+- **Best for**: Privacy-conscious users, offline work
+
+### 🎯 Cursor Integration
+- **Cost**: Free guidance
+- **Setup**: No configuration needed
+- **Best for**: Leveraging Cursor's built-in AI features
 
 ## Extension Settings
 
-This extension contributes the following settings:
+### Provider Selection
+* `ai-learning-tool.provider`: Choose your AI provider (claude, openai, local, cursor)
 
-* `ai-learning-tool.apiKey`: Your API key for the AI service (required)
-* `ai-learning-tool.apiUrl`: API endpoint URL (default: OpenAI completions)
-* `ai-learning-tool.model`: AI model to use (default: gpt-3.5-turbo-instruct)
+### API Configuration  
+* `ai-learning-tool.apiKey`: Your API key (required for Claude/OpenAI)
+
+### Provider-Specific Settings
+* `ai-learning-tool.claude.model`: Claude model (default: claude-3-haiku-20240307)
+* `ai-learning-tool.openai.model`: OpenAI model (default: gpt-3.5-turbo)
+* `ai-learning-tool.local.apiUrl`: Local AI endpoint (default: Ollama)
+* `ai-learning-tool.cursor.integration`: Enable Cursor-specific features
 
 ## Setup Instructions
 
@@ -51,9 +81,10 @@ This extension contributes the following settings:
 4. AI will generate code based on your description and file context
 
 ### Available Commands
-- `AI Learning Tool: Hello World` - Test command
-- `AI Learning Tool: Open AI Chat` - Open the chat interface
+- `AI Learning Tool: Open AI Chat` - Open the multi-provider chat interface
 - `AI Learning Tool: Generate Code` - Generate code from selected text
+- `AI Learning Tool: Switch AI Provider` - Quick provider switching
+- `AI Learning Tool: Hello World` - Test command
 
 ## Testing the Extension
 
@@ -91,7 +122,35 @@ ai-learning-tool/
 - `npm run lint`: Run ESLint
 - `npm test`: Run tests
 
+## ❓ Frequently Asked Questions
+
+### Can I use my Claude Pro subscription with this extension?
+Unfortunately, **no**. Claude subscriptions (Pro, web, CLI) use different authentication and cannot be used with VS Code/Cursor extensions. You'll need:
+- **Claude API credits** (separate from subscription, ~$0.25 per 1M tokens)
+- **Or use a different provider** (OpenAI, local AI, or Cursor's built-in features)
+
+### What about my existing Claude Code CLI subscription?
+The CLI subscription cannot be shared with extensions due to technical and policy limitations. However, you can:
+- Use the **Cursor provider** option for guidance on Cursor's built-in AI
+- Try **local AI models** for free offline usage
+- Get Claude API credits for the best experience with this extension
+
+### Which provider should I choose?
+- **New to AI coding**: Start with Cursor provider (free guidance)
+- **Want high quality**: Claude API (cost-effective with Haiku model)  
+- **Privacy focused**: Local AI with Ollama
+- **Already have OpenAI**: Use OpenAI provider
+
 ## Release Notes
+
+### 0.2.0 (Cursor Optimizations)
+
+**🎯 Cursor-Specific Features:**
+- Multi-provider AI support (Claude, OpenAI, Local, Cursor)
+- Cursor-optimized UI and branding  
+- Quick provider switching command
+- Smart configuration management
+- Cursor integration guidance
 
 ### 0.1.0 (Phase 2 Complete)
 
