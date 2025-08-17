@@ -2,7 +2,7 @@
   "name": "ai-learning-tool",
   "displayName": "AI Learning Tool",
   "description": "AI-powered learning tool for VS Code",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -16,8 +16,39 @@
       {
         "command": "ai-learning-tool.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "ai-learning-tool.openChat",
+        "title": "Open AI Chat"
+      },
+      {
+        "command": "ai-learning-tool.generateCode",
+        "title": "Generate Code"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "AI Learning Tool",
+      "properties": {
+        "ai-learning-tool.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your API Key for the AI service (e.g., OpenAI). Stored securely by VS Code.",
+          "scope": "application"
+        },
+        "ai-learning-tool.apiUrl": {
+          "type": "string",
+          "default": "https://api.openai.com/v1/completions",
+          "description": "API endpoint URL for the AI service",
+          "scope": "application"
+        },
+        "ai-learning-tool.model": {
+          "type": "string",
+          "default": "gpt-3.5-turbo-instruct",
+          "description": "AI model to use for completions",
+          "scope": "application"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -45,5 +76,8 @@
     "typescript": "^5.5.4",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "axios": "^1.11.0"
   }
 }

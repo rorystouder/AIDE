@@ -4,28 +4,66 @@ AI-powered learning tool for VS Code.
 
 ## Features
 
-Currently implements:
-- Hello World command to verify extension is working
+### Phase 1 ✅
+- Basic extension setup and Hello World command
+
+### Phase 2 ✅ 
+- **AI Chat Interface**: Interactive webview for conversing with AI
+- **Code Generation**: Select text and generate code based on descriptions
+- **API Integration**: Support for OpenAI and compatible APIs
+- **Configuration Management**: Secure API key storage and validation
+- **Context-Aware Assistance**: Language and file-specific code generation
 
 ## Requirements
 
 - VS Code version 1.74.0 or higher
 - Node.js 16.x or higher
+- AI API key (OpenAI or compatible service)
 
 ## Extension Settings
 
-This extension will contribute the following settings (to be implemented):
+This extension contributes the following settings:
 
-* `ai-learning-tool.apiKey`: API key for AI service
+* `ai-learning-tool.apiKey`: Your API key for the AI service (required)
+* `ai-learning-tool.apiUrl`: API endpoint URL (default: OpenAI completions)
+* `ai-learning-tool.model`: AI model to use (default: gpt-3.5-turbo-instruct)
+
+## Setup Instructions
+
+1. **Install the Extension**: Install in VS Code or load for development
+2. **Configure API Key**: 
+   - Open VS Code Settings (`Ctrl+,` or `Cmd+,`)
+   - Search for "AI Learning Tool"
+   - Enter your API key in the `ai-learning-tool.apiKey` field
+3. **Start Using**: Use the Command Palette to access features
+
+## How to Use
+
+### AI Chat Interface
+1. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
+2. Run "Open AI Chat" command
+3. Chat with the AI about coding questions, request examples, or get help
+
+### Code Generation
+1. Write a comment or description in your code (e.g., `// Create a function to sort an array`)
+2. Select the text
+3. Run "Generate Code" command from Command Palette
+4. AI will generate code based on your description and file context
+
+### Available Commands
+- `AI Learning Tool: Hello World` - Test command
+- `AI Learning Tool: Open AI Chat` - Open the chat interface
+- `AI Learning Tool: Generate Code` - Generate code from selected text
 
 ## Testing the Extension
 
 ### Method 1: Using VS Code UI
 1. Open this folder in VS Code
-2. Press `F5` to open a new VS Code window with the extension loaded
-3. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
-4. Type "Hello World" and run the command
-5. You should see a notification "Hello World from AI Learning Tool!"
+2. Press `F5` to open a new Extension Development Host window
+3. Configure your API key in the new window's settings
+4. Test the commands:
+   - Open Command Palette and try "Open AI Chat"
+   - Create a file, write a comment, select it, and use "Generate Code"
 
 ### Method 2: Using Command Line
 1. Install dependencies: `npm install`
@@ -55,15 +93,27 @@ ai-learning-tool/
 
 ## Release Notes
 
-### 0.0.1
+### 0.1.0 (Phase 2 Complete)
 
-Initial release with basic Hello World command.
+**New Features:**
+- AI Chat Interface with beautiful VS Code-themed UI
+- Code Generation from selected text with context awareness
+- API key configuration and validation
+- Support for OpenAI and compatible APIs
+- Progress indicators and error handling
+- Two-way communication between extension and webview
 
-## Next Steps (Phase 2)
+### 0.0.1 (Phase 1)
 
-- Integrate AI API service
-- Create webview for chat interface
-- Implement code generation command
+- Initial release with basic Hello World command
+- Extension scaffolding and build setup
+
+## Next Steps (Phase 3)
+
+- Context awareness with multi-file analysis
+- Real-time code suggestions (tab-to-complete)
+- Performance optimizations and caching
+- Advanced prompt engineering
 
 ---
 
