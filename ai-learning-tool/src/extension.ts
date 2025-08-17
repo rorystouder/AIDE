@@ -1,10 +1,51 @@
 import * as vscode from 'vscode';
-import { getAiCompletion, validateConfiguration } from './ai-service';
+import { getAiCompletion, validateConfiguration, AIRequestOptions } from './ai-service';
+import { AiCompletionProvider } from './completion-provider';
+import { CacheService } from './cache-service';
+import { ContextService } from './context-service';
+import { SearchService } from './search-service';
 
 // This method is called when your extension is activated
 export function activate(context: vscode.ExtensionContext) {
     
     console.log('Congratulations, your extension "ai-learning-tool" is now active!');
+
+    // Initialize services
+    const cacheService = CacheService.getInstance();
+    const contextService = ContextService.getInstance();
+    const searchService = SearchService.getInstance();
+    const completionProvider = new AiCompletionProvider();
+
+    // Register the inline completion provider for supported languages
+    const completionProviderRegistration = vscode.languages.registerInlineCompletionItemProvider(
+        [
+            { language: 'typescript', scheme: 'file' },
+            { language: 'javascript', scheme: 'file' },
+            { language: 'python', scheme: 'file' },
+            { language: 'java', scheme: 'file' },
+            { language: 'cpp', scheme: 'file' },
+            { language: 'c', scheme: 'file' },
+            { language: 'rust', scheme: 'file' },
+            { language: 'go', scheme: 'file' },
+            { pattern: '**/*' } // Fallback for all files
+        ],
+        completionProvider
+    );
+
+    // Register file change listeners for cache invalidation
+    const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*');
+    fileWatcher.onDidChange(uri => {
+        cacheService.invalidateFileCache(uri);
+    });
+    fileWatcher.onDidDelete(uri => {
+        cacheService.invalidateFileCache(uri);
+    });
+
+    // Register workspace change listener
+    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        cacheService.invalidateWorkspaceCache();
+        contextService.clearCache();
+    });
 
     // Register Hello World command
     let helloWorldCommand = vscode.commands.registerCommand('ai-learning-tool.helloWorld', () => {
@@ -26,8 +67,62 @@ export function activate(context: vscode.ExtensionContext) {
         await switchAIProvider();
     });
 
-    // Register all commands
-    context.subscriptions.push(helloWorldCommand, openChatCommand, generateCodeCommand, switchProviderCommand);
+    // Register Cache Stats command
+    let cacheStatsCommand = vscode.commands.registerCommand('ai-learning-tool.showCacheStats', () => {
+        showCacheStatistics();
+    });
+
+    // Register Clear Cache command
+    let clearCacheCommand = vscode.commands.registerCommand('ai-learning-tool.clearCache', () => {
+        cacheService.clearAll();
+        contextService.clearCache();
+        vscode.window.showInformationMessage('All caches cleared successfully!');
+    });
+
+    // Register Search Workspace command
+    let searchWorkspaceCommand = vscode.commands.registerCommand('ai-learning-tool.searchWorkspace', async () => {
+        await performWorkspaceSearch();
+    });
+
+    // Register Find Definitions command
+    let findDefinitionsCommand = vscode.commands.registerCommand('ai-learning-tool.findDefinitions', async () => {
+        await findDefinitions();
+    });
+
+    // Register Find References command
+    let findReferencesCommand = vscode.commands.registerCommand('ai-learning-tool.findReferences', async () => {
+        await findReferences();
+    });
+
+    // Register Find TODOs command
+    let findTodosCommand = vscode.commands.registerCommand('ai-learning-tool.findTodos', async () => {
+        await findTodos();
+    });
+
+    // Register all commands and providers
+    context.subscriptions.push(
+        helloWorldCommand, 
+        openChatCommand, 
+        generateCodeCommand, 
+        switchProviderCommand,
+        cacheStatsCommand,
+        clearCacheCommand,
+        searchWorkspaceCommand,
+        findDefinitionsCommand,
+        findReferencesCommand,
+        findTodosCommand,
+        completionProviderRegistration,
+        fileWatcher,
+        workspaceWatcher
+    );
+
+    // Cleanup on deactivation
+    context.subscriptions.push({
+        dispose: () => {
+            cacheService.dispose();
+            completionProvider.dispose();
+        }
+    });
 }
 
 function createWebviewPanel(context: vscode.ExtensionContext) {
@@ -51,7 +146,15 @@ function createWebviewPanel(context: vscode.ExtensionContext) {
             switch (message.command) {
                 case 'submitPrompt':
                     if (message.text && message.text.trim()) {
-                        const completion = await getAiCompletion(message.text);
+                        // Use advanced AI completion with context and caching
+                        const options: AIRequestOptions = {
+                            useCache: true,
+                            includeContext: true,
+                            maxTokens: 2000,
+                            temperature: 0.4
+                        };
+                        
+                        const completion = await getAiCompletion(message.text, options);
                         panel.webview.postMessage({ 
                             command: 'showCompletion', 
                             text: completion,
@@ -96,7 +199,7 @@ async function generateCodeFromSelection() {
         return;
     }
 
-    // Enhanced prompt with context
+    // Enhanced prompt with full context awareness
     const languageId = editor.document.languageId;
     const fileName = editor.document.fileName;
     const contextPrompt = `
@@ -108,7 +211,15 @@ Request: ${selectedText}
 
 Please provide clean, well-commented code that follows best practices for ${languageId}.`;
 
-    const completion = await getAiCompletion(contextPrompt);
+    // Use advanced options with context and caching
+    const options: AIRequestOptions = {
+        useCache: true,
+        includeContext: true,
+        maxTokens: 1500,
+        temperature: 0.3 // Lower temperature for more consistent code generation
+    };
+
+    const completion = await getAiCompletion(contextPrompt, options);
     
     if (completion && completion.trim()) {
         // Insert the completion at the end of the selection
@@ -461,5 +572,215 @@ function getWebviewContent(): string {
     </html>`;
 }
 
+function showCacheStatistics() {
+    const cacheService = CacheService.getInstance();
+    const stats = cacheService.getCacheStats();
+    
+    const message = `Cache Statistics:
+
+Completions:
+• Size: ${stats.completions.size} entries
+• Hits: ${stats.completions.hits}
+
+Context:
+• Size: ${stats.context.size} entries  
+• Hits: ${stats.context.hits}
+
+Memory Usage: ${stats.memoryUsage}`;
+    
+    vscode.window.showInformationMessage(message, 'Clear Cache', 'Close').then(selection => {
+        if (selection === 'Clear Cache') {
+            vscode.commands.executeCommand('ai-learning-tool.clearCache');
+        }
+    });
+}
+
+async function performWorkspaceSearch() {
+    const searchService = SearchService.getInstance();
+    
+    const query = await vscode.window.showInputBox({
+        prompt: 'Enter search query',
+        placeHolder: 'Search text across workspace...'
+    });
+
+    if (!query) {
+        return;
+    }
+
+    try {
+        const results = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Searching workspace...',
+            cancellable: false
+        }, async () => {
+            return await searchService.searchWorkspace(query, {
+                maxResults: 50,
+                contextLines: 2
+            });
+        });
+
+        if (results.length === 0) {
+            vscode.window.showInformationMessage(`No results found for "${query}"`);
+            return;
+        }
+
+        await showSearchResults(results, `Search results for "${query}"`);
+        
+    } catch (error) {
+        vscode.window.showErrorMessage(`Search failed: ${error}`);
+    }
+}
+
+async function findDefinitions() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showInformationMessage('No active editor found.');
+        return;
+    }
+
+    const selection = editor.selection;
+    const selectedText = editor.document.getText(selection);
+    
+    let identifier = selectedText;
+    if (!identifier) {
+        const wordRange = editor.document.getWordRangeAtPosition(selection.start);
+        if (wordRange) {
+            identifier = editor.document.getText(wordRange);
+        }
+    }
+
+    if (!identifier) {
+        const input = await vscode.window.showInputBox({
+            prompt: 'Enter identifier to find definitions',
+            placeHolder: 'function name, class name, etc.'
+        });
+        if (!input) {
+            return;
+        }
+        identifier = input;
+    }
+
+    try {
+        const searchService = SearchService.getInstance();
+        const results = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Finding definitions for "${identifier}"...`,
+            cancellable: false
+        }, async () => {
+            return await searchService.searchDefinitions(identifier, editor.document.languageId);
+        });
+
+        if (results.length === 0) {
+            vscode.window.showInformationMessage(`No definitions found for "${identifier}"`);
+            return;
+        }
+
+        await showSearchResults(results, `Definitions of "${identifier}"`);
+        
+    } catch (error) {
+        vscode.window.showErrorMessage(`Definition search failed: ${error}`);
+    }
+}
+
+async function findReferences() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showInformationMessage('No active editor found.');
+        return;
+    }
+
+    const selection = editor.selection;
+    const selectedText = editor.document.getText(selection);
+    
+    let identifier = selectedText;
+    if (!identifier) {
+        const wordRange = editor.document.getWordRangeAtPosition(selection.start);
+        if (wordRange) {
+            identifier = editor.document.getText(wordRange);
+        }
+    }
+
+    if (!identifier) {
+        const input = await vscode.window.showInputBox({
+            prompt: 'Enter identifier to find references',
+            placeHolder: 'variable name, function name, etc.'
+        });
+        if (!input) {
+            return;
+        }
+        identifier = input;
+    }
+
+    try {
+        const searchService = SearchService.getInstance();
+        const results = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Finding references for "${identifier}"...`,
+            cancellable: false
+        }, async () => {
+            return await searchService.searchReferences(identifier, editor.document.languageId);
+        });
+
+        if (results.length === 0) {
+            vscode.window.showInformationMessage(`No references found for "${identifier}"`);
+            return;
+        }
+
+        await showSearchResults(results, `References of "${identifier}"`);
+        
+    } catch (error) {
+        vscode.window.showErrorMessage(`Reference search failed: ${error}`);
+    }
+}
+
+async function findTodos() {
+    try {
+        const searchService = SearchService.getInstance();
+        const results = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Finding TODO comments...',
+            cancellable: false
+        }, async () => {
+            return await searchService.searchTodos();
+        });
+
+        if (results.length === 0) {
+            vscode.window.showInformationMessage('No TODO comments found in workspace');
+            return;
+        }
+
+        await showSearchResults(results, 'TODO Comments');
+        
+    } catch (error) {
+        vscode.window.showErrorMessage(`TODO search failed: ${error}`);
+    }
+}
+
+async function showSearchResults(results: any[], title: string) {
+    const items = results.map(result => ({
+        label: `${result.fileName}:${result.lineNumber}`,
+        description: result.lineText.trim(),
+        detail: result.relativePath,
+        result: result
+    }));
+
+    const selection = await vscode.window.showQuickPick(items, {
+        placeHolder: `${title} (${results.length} results)`,
+        matchOnDescription: true,
+        matchOnDetail: true
+    });
+
+    if (selection) {
+        const document = await vscode.workspace.openTextDocument(selection.result.uri);
+        const editor = await vscode.window.showTextDocument(document);
+        
+        const position = new vscode.Position(selection.result.lineNumber - 1, 0);
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+    }
+}
+
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    // Cleanup is handled in activate() context.subscriptions
+}

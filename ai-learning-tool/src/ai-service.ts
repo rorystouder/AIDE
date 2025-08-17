@@ -1,11 +1,21 @@
 import axios from 'axios';
 import * as vscode from 'vscode';
+import { CacheService } from './cache-service';
+import { ContextService, WorkspaceContext } from './context-service';
 
 export type AIProvider = 'openai' | 'claude' | 'local' | 'cursor';
 
 export interface AIResponse {
     text: string;
     error?: string;
+}
+
+export interface AIRequestOptions {
+    useCache?: boolean;
+    includeContext?: boolean;
+    maxTokens?: number;
+    temperature?: number;
+    contextWindow?: number;
 }
 
 interface ProviderConfig {
@@ -17,9 +27,19 @@ interface ProviderConfig {
     parseResponse: (response: any) => string;
 }
 
-export async function getAiCompletion(prompt: string): Promise<string> {
+export async function getAiCompletion(prompt: string, options: AIRequestOptions = {}): Promise<string> {
     const config = vscode.workspace.getConfiguration('ai-learning-tool');
     const provider = config.get<AIProvider>('provider', 'openai');
+    const cacheService = CacheService.getInstance();
+    const contextService = ContextService.getInstance();
+    
+    // Check cache first if enabled
+    if (options.useCache !== false) {
+        const cached = cacheService.getCachedProviderResponse(provider, prompt);
+        if (cached) {
+            return cached;
+        }
+    }
     
     // Check if running in Cursor and provider is set to cursor
     if (provider === 'cursor') {
@@ -33,6 +53,18 @@ export async function getAiCompletion(prompt: string): Promise<string> {
         return '';
     }
 
+    // Enhance prompt with context if enabled
+    let enhancedPrompt = prompt;
+    if (options.includeContext !== false) {
+        try {
+            const workspaceContext = await contextService.buildWorkspaceContext();
+            enhancedPrompt = await enhancePromptWithContext(prompt, workspaceContext, provider, options);
+        } catch (error) {
+            console.warn('Failed to add context to prompt:', error);
+            // Continue with original prompt
+        }
+    }
+
     return await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `${provider.toUpperCase()} is thinking...`,
@@ -43,12 +75,20 @@ export async function getAiCompletion(prompt: string): Promise<string> {
         try {
             progress.report({ increment: 30 });
             
+            // Apply provider-specific optimizations
+            const requestData = await optimizeRequestForProvider(
+                enhancedPrompt, 
+                provider, 
+                providerConfig, 
+                options
+            );
+            
             const response = await axios.post(
                 providerConfig.apiUrl,
-                providerConfig.formatRequest(prompt),
+                requestData,
                 {
                     headers: providerConfig.headers,
-                    timeout: 30000
+                    timeout: options.contextWindow ? 45000 : 30000 // Longer timeout for context-heavy requests
                 }
             );
 
@@ -56,28 +96,17 @@ export async function getAiCompletion(prompt: string): Promise<string> {
             const result = providerConfig.parseResponse(response.data);
             progress.report({ increment: 100 });
             
+            // Cache the result
+            if (options.useCache !== false && result) {
+                cacheService.cacheProviderResponse(provider, prompt, result);
+            }
+            
             return result;
 
         } catch (error: any) {
             console.error(`${provider} AI Service Error:`, error);
             
-            let errorMessage = `Failed to get completion from ${provider}.`;
-            
-            if (error.response) {
-                if (error.response.status === 401) {
-                    errorMessage = `Invalid API key for ${provider}. Please check your configuration.`;
-                } else if (error.response.status === 429) {
-                    errorMessage = `Rate limit exceeded for ${provider}. Please try again later.`;
-                } else if (error.response.status === 500) {
-                    errorMessage = `${provider} service is temporarily unavailable.`;
-                } else {
-                    errorMessage = `${provider} API Error: ${error.response.status} - ${error.response.data?.error?.message || 'Unknown error'}`;
-                }
-            } else if (error.code === 'ECONNABORTED') {
-                errorMessage = 'Request timed out. Please try again.';
-            } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-                errorMessage = `Cannot connect to ${provider} service. Please check your internet connection.`;
-            }
+            let errorMessage = await generateContextualErrorMessage(error, provider, options);
 
             vscode.window.showErrorMessage(errorMessage);
             return '';
@@ -198,6 +227,154 @@ To use those providers, change the AI provider in settings.
     }
 
     return guidance;
+}
+
+/**
+ * Enhance prompt with workspace context and provider-specific optimizations
+ */
+async function enhancePromptWithContext(
+    originalPrompt: string, 
+    context: WorkspaceContext, 
+    provider: AIProvider, 
+    options: AIRequestOptions
+): Promise<string> {
+    const contextService = ContextService.getInstance();
+    
+    // Format context based on provider capabilities
+    const contextInfo = contextService.formatContextForPrompt(context, false);
+    
+    // Provider-specific prompt templates
+    const templates = {
+        claude: {
+            system: "You are an expert software engineer specialized in code analysis and generation.",
+            structure: `${contextInfo}
+
+User Request: ${originalPrompt}
+
+Instructions:
+- Provide concise, high-quality code solutions
+- Follow the project's existing patterns and conventions
+- Consider the workspace context when making suggestions
+- Keep responses focused and actionable`
+        },
+        openai: {
+            system: "You are a skilled programmer helping with code development.",
+            structure: `Context:
+${contextInfo}
+
+Task: ${originalPrompt}
+
+Please provide a clear, well-structured response that considers the project context.`
+        },
+        local: {
+            system: "You are a coding assistant.",
+            structure: `Project: ${context.workspaceName}
+Language: ${context.currentFile?.language || 'unknown'}
+
+${originalPrompt}
+
+Response:`
+        }
+    };
+    
+    const template = templates[provider as keyof typeof templates] || templates.openai;
+    return template.structure;
+}
+
+/**
+ * Optimize request parameters based on provider and context
+ */
+async function optimizeRequestForProvider(
+    prompt: string,
+    provider: AIProvider,
+    providerConfig: ProviderConfig,
+    options: AIRequestOptions
+): Promise<any> {
+    const baseRequest = providerConfig.formatRequest(prompt);
+    
+    // Apply provider-specific optimizations
+    switch (provider) {
+        case 'claude':
+            return {
+                ...baseRequest,
+                max_tokens: options.maxTokens || (options.includeContext ? 2000 : 1000),
+                temperature: options.temperature || 0.3 // Lower temperature for code
+            };
+            
+        case 'openai':
+            return {
+                ...baseRequest,
+                max_tokens: options.maxTokens || (options.includeContext ? 1500 : 1000),
+                temperature: options.temperature || 0.4,
+                top_p: 0.9,
+                frequency_penalty: 0.1 // Reduce repetition
+            };
+            
+        case 'local':
+            return {
+                ...baseRequest,
+                options: {
+                    temperature: options.temperature || 0.3,
+                    top_p: 0.9,
+                    repeat_penalty: 1.1
+                }
+            };
+            
+        default:
+            return baseRequest;
+    }
+}
+
+/**
+ * Generate contextual error messages based on the error and provider
+ */
+async function generateContextualErrorMessage(
+    error: any, 
+    provider: AIProvider, 
+    options: AIRequestOptions
+): Promise<string> {
+    let errorMessage = `Failed to get completion from ${provider}.`;
+    
+    if (error.response) {
+        const status = error.response.status;
+        const responseData = error.response.data;
+        
+        switch (status) {
+            case 401:
+                errorMessage = `Invalid API key for ${provider}. Please check your configuration.`;
+                break;
+            case 429:
+                const providerSuggestions = {
+                    claude: "Consider using Claude Haiku model for lower costs",
+                    openai: "Consider upgrading your OpenAI plan or try local AI",
+                    local: "Local AI shouldn't have rate limits - check your setup"
+                };
+                const suggestion = providerSuggestions[provider as keyof typeof providerSuggestions] || "";
+                errorMessage = `Rate limit exceeded for ${provider}. ${suggestion}. Please try again later.`;
+                break;
+            case 500:
+                errorMessage = `${provider} service is temporarily unavailable. Try switching to another provider.`;
+                break;
+            case 413:
+                errorMessage = `Request too large for ${provider}. Try reducing context or prompt length.`;
+                break;
+            default:
+                const errorDetail = responseData?.error?.message || responseData?.message || 'Unknown error';
+                errorMessage = `${provider} API Error (${status}): ${errorDetail}`;
+        }
+    } else if (error.code === 'ECONNABORTED') {
+        errorMessage = `Request timed out. ${options.includeContext ? 'Try reducing context size or ' : ''}please try again.`;
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        const networkHelp = {
+            local: "Make sure Ollama is running (ollama serve)",
+            claude: "Check your internet connection",
+            openai: "Check your internet connection"
+        };
+        const help = networkHelp[provider as keyof typeof networkHelp] || "Check your connection";
+        errorMessage = `Cannot connect to ${provider} service. ${help}.`;
+    }
+    
+    return errorMessage;
 }
 
 export async function getAiCodeReview(code: string): Promise<CodeIssue[]> {

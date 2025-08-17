@@ -40,6 +40,30 @@
       {
         "command": "ai-learning-tool.switchProvider",
         "title": "Switch AI Provider"
+      },
+      {
+        "command": "ai-learning-tool.showCacheStats",
+        "title": "Show Cache Statistics"
+      },
+      {
+        "command": "ai-learning-tool.clearCache",
+        "title": "Clear All Caches"
+      },
+      {
+        "command": "ai-learning-tool.searchWorkspace",
+        "title": "Search Workspace"
+      },
+      {
+        "command": "ai-learning-tool.findDefinitions",
+        "title": "Find Definitions"
+      },
+      {
+        "command": "ai-learning-tool.findReferences",
+        "title": "Find References"
+      },
+      {
+        "command": "ai-learning-tool.findTodos",
+        "title": "Find TODOs"
       }
     ],
     "configuration": {
