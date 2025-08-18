@@ -2,7 +2,7 @@
   "name": "ai-learning-tool",
   "displayName": "AI Learning Tool for Cursor",
   "description": "Advanced AI-powered development assistant with code analysis, performance optimization, security scanning, and personalized suggestions.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "rorystouder",
   "repository": {
     "type": "git",
