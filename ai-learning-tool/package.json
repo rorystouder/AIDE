@@ -2,7 +2,22 @@
   "name": "ai-learning-tool",
   "displayName": "AI Learning Tool for Cursor",
   "description": "AI-powered learning tool optimized for Cursor IDE. Supports multiple AI providers including Claude, OpenAI, and local models.",
-  "version": "0.2.0",
+  "version": "0.4.0",
+  "publisher": "rorystouder",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rorystouder/AIDE"
+  },
+  "bugs": {
+    "url": "https://github.com/rorystouder/AIDE/issues"
+  },
+  "homepage": "https://github.com/rorystouder/AIDE#readme",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
