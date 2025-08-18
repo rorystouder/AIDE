@@ -4,6 +4,7 @@ import { AiCompletionProvider } from './completion-provider';
 import { CacheService } from './cache-service';
 import { ContextService } from './context-service';
 import { SearchService } from './search-service';
+import { EducationalService } from './educational-service';
 
 // This method is called when your extension is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -14,6 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
     const cacheService = CacheService.getInstance();
     const contextService = ContextService.getInstance();
     const searchService = SearchService.getInstance();
+    const educationalService = EducationalService.getInstance();
     const completionProvider = new AiCompletionProvider();
 
     // Register the inline completion provider for supported languages
@@ -99,6 +101,27 @@ export function activate(context: vscode.ExtensionContext) {
         await findTodos();
     });
 
+    // Educational Commands
+    let noCodeBuilderCommand = vscode.commands.registerCommand('ai-learning-tool.noCodeBuilder', async () => {
+        vscode.window.showInformationMessage('🎯 No-Code Builder: Describe what you want to build in plain English and get step-by-step code with explanations! Feature coming soon.');
+    });
+
+    let explainCodeCommand = vscode.commands.registerCommand('ai-learning-tool.explainCode', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showInformationMessage('Open a code file first to get step-by-step explanations.');
+            return;
+        }
+        
+        const code = editor.document.getText(editor.selection) || editor.document.getText();
+        const language = editor.document.languageId;
+        
+        if (code.trim()) {
+            const explanation = await educationalService.explainCodeStepByStep(code, language, 'beginner');
+            vscode.window.showInformationMessage(`📚 Code Explanation: ${explanation.overview.substring(0, 100)}...`);
+        }
+    });
+
     // Register all commands and providers
     context.subscriptions.push(
         helloWorldCommand, 
@@ -111,6 +134,8 @@ export function activate(context: vscode.ExtensionContext) {
         findDefinitionsCommand,
         findReferencesCommand,
         findTodosCommand,
+        noCodeBuilderCommand,
+        explainCodeCommand,
         completionProviderRegistration,
         fileWatcher,
         workspaceWatcher

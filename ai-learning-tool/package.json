@@ -1,8 +1,8 @@
 {
   "name": "ai-learning-tool",
   "displayName": "AI Learning Tool for Cursor",
-  "description": "AI-powered learning tool optimized for Cursor IDE. Supports multiple AI providers including Claude, OpenAI, and local models.",
-  "version": "0.4.0",
+  "description": "Advanced AI-powered development assistant with code analysis, performance optimization, security scanning, and personalized suggestions.",
+  "version": "0.5.0",
   "publisher": "rorystouder",
   "repository": {
     "type": "git",
@@ -41,43 +41,95 @@
     "commands": [
       {
         "command": "ai-learning-tool.helloWorld",
-        "title": "Hello World"
+        "title": "AI Learning Tool: Hello World"
       },
       {
         "command": "ai-learning-tool.openChat",
-        "title": "Open AI Chat"
+        "title": "AI Learning Tool: Open AI Chat"
       },
       {
         "command": "ai-learning-tool.generateCode",
-        "title": "Generate Code"
+        "title": "AI Learning Tool: Generate Code"
       },
       {
         "command": "ai-learning-tool.switchProvider",
-        "title": "Switch AI Provider"
+        "title": "AI Learning Tool: Switch AI Provider"
       },
       {
         "command": "ai-learning-tool.showCacheStats",
-        "title": "Show Cache Statistics"
+        "title": "AI Learning Tool: Show Cache Statistics"
       },
       {
         "command": "ai-learning-tool.clearCache",
-        "title": "Clear All Caches"
+        "title": "AI Learning Tool: Clear All Caches"
       },
       {
         "command": "ai-learning-tool.searchWorkspace",
-        "title": "Search Workspace"
+        "title": "AI Learning Tool: Search Workspace"
       },
       {
         "command": "ai-learning-tool.findDefinitions",
-        "title": "Find Definitions"
+        "title": "AI Learning Tool: Find Definitions"
       },
       {
         "command": "ai-learning-tool.findReferences",
-        "title": "Find References"
+        "title": "AI Learning Tool: Find References"
       },
       {
         "command": "ai-learning-tool.findTodos",
-        "title": "Find TODOs"
+        "title": "AI Learning Tool: Find TODOs"
+      },
+      {
+        "command": "ai-learning-tool.analyzeCode",
+        "title": "AI Learning Tool: Analyze Code"
+      },
+      {
+        "command": "ai-learning-tool.analyzePerformance",
+        "title": "AI Learning Tool: Analyze Performance"
+      },
+      {
+        "command": "ai-learning-tool.analyzeSecurity",
+        "title": "AI Learning Tool: Analyze Security"
+      },
+      {
+        "command": "ai-learning-tool.suggestRefactoring",
+        "title": "AI Learning Tool: Suggest Refactoring"
+      },
+      {
+        "command": "ai-learning-tool.showAnalytics",
+        "title": "AI Learning Tool: Show Usage Analytics"
+      },
+      {
+        "command": "ai-learning-tool.clearAnalytics",
+        "title": "AI Learning Tool: Clear Analytics Data"
+      },
+      {
+        "command": "ai-learning-tool.noCodeBuilder",
+        "title": "AI Learning Tool: No-Code to Code Builder"
+      },
+      {
+        "command": "ai-learning-tool.explainCode",
+        "title": "AI Learning Tool: Explain Code Step-by-Step"
+      },
+      {
+        "command": "ai-learning-tool.codingMentor",
+        "title": "AI Learning Tool: Interactive Coding Mentor"
+      },
+      {
+        "command": "ai-learning-tool.projectIdeas",
+        "title": "AI Learning Tool: Generate Project Ideas"
+      },
+      {
+        "command": "ai-learning-tool.debugHelper",
+        "title": "AI Learning Tool: Debug Helper with Explanations"
+      },
+      {
+        "command": "ai-learning-tool.noCodeBuilder", 
+        "title": "AI Learning Tool: No-Code to Code Builder"
+      },
+      {
+        "command": "ai-learning-tool.explainCode",
+        "title": "AI Learning Tool: Explain Code Step-by-Step"
       }
     ],
     "configuration": {
